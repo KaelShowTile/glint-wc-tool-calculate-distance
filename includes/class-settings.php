@@ -46,7 +46,7 @@ class Glint_WC_Distance_Settings
 ?>
         <div class="wrap">
             <h1>ST AI Tools</h1>
-            <p>Placeholder for Manual/p>
+            <p>Placeholder for Manual</p>
         </div>
         <?php
     }
