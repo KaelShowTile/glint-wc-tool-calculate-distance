@@ -180,7 +180,8 @@ class Glint_WC_Distance_Settings
                     $record->order_id,
                     $customer_name,
                     $address_str,
-                    $record->distance
+                    $record->distance,
+                    $order->get_total()
                 ));
             }
         }
