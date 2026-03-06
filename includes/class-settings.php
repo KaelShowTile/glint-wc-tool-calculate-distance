@@ -150,7 +150,7 @@ class Glint_WC_Distance_Settings
 
         $output = fopen('php://output', 'w');
         // CSV headers
-        fputcsv($output, array('Order ID', 'Customer Full Name', 'Shipping Address', 'Distance'));
+        fputcsv($output, array('Order ID', 'Customer Full Name', 'Shipping Address', 'Distance', 'Total'));
 
         // Fetch distances
         $distances = $wpdb->get_results("SELECT order_id, distance FROM $table_distance_name");
