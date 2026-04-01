@@ -129,8 +129,30 @@ class Glint_WC_Distance_Settings
             <hr>
 
             <h2>Export Distance Data</h2>
-            <p>Export all calculated distances for orders.</p>
-            <a href="<?php echo esc_url(admin_url('admin-post.php?action=glint_wc_distance_export_csv')); ?>" class="button">Export to CSV</a>
+            <p>Export calculated distances for orders. You can optionally select a date range.</p>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="glint_wc_distance_export_csv">
+                <?php wp_nonce_field('glint_wc_distance_export_nonce', 'export_nonce'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="export_start_date">Start Date</label></th>
+                        <td>
+                            <input type="date" id="export_start_date" name="start_date" class="regular-text" />
+                            <p class="description">Leave blank for no start date limit.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="export_end_date">End Date</label></th>
+                        <td>
+                            <input type="date" id="export_end_date" name="end_date" class="regular-text" />
+                            <p class="description">Leave blank for no end date limit.</p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" class="button" value="Export to CSV">
+                </p>
+            </form>
         </div>
         <?php
     }
@@ -141,12 +163,28 @@ class Glint_WC_Distance_Settings
             wp_die('Unauthorized action.');
         }
 
+        if (empty($_POST['export_nonce']) || !wp_verify_nonce($_POST['export_nonce'], 'glint_wc_distance_export_nonce')) {
+            wp_die('Unauthorized action.');
+        }
+
+        $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
+        $end_date   = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
+
         global $wpdb;
         $table_distance_name = $wpdb->prefix . 'glint_ai_tool_order_distance';
 
+        $filename_date = date('Y-m-d');
+        if (!empty($start_date) && !empty($end_date)) {
+            $filename_date = "{$start_date}_to_{$end_date}";
+        } elseif (!empty($start_date)) {
+            $filename_date = "from_{$start_date}";
+        } elseif (!empty($end_date)) {
+            $filename_date = "until_{$end_date}";
+        }
+
         // Set headers for CSV download
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=glint_distance_export_' . date('Y-m-d') . '.csv');
+        header('Content-Disposition: attachment; filename=glint_distance_export_' . $filename_date . '.csv');
 
         $output = fopen('php://output', 'w');
         // CSV headers
@@ -160,6 +198,19 @@ class Glint_WC_Distance_Settings
                 $order = wc_get_order($record->order_id);
                 if (!$order) {
                     continue;
+                }
+
+                if (!empty($start_date) || !empty($end_date)) {
+                    $order_date = $order->get_date_created();
+                    if ($order_date) {
+                        $order_date_str = $order_date->format('Y-m-d');
+                        if (!empty($start_date) && $order_date_str < $start_date) {
+                            continue;
+                        }
+                        if (!empty($end_date) && $order_date_str > $end_date) {
+                            continue;
+                        }
+                    }
                 }
 
                 $customer_name = $order->get_formatted_shipping_full_name();
